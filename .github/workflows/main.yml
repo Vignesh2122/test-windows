@@ -33,34 +33,36 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Toggle maintenance mode
+        env:
+          MAINTENANCE: ${{ inputs.maintenance }}
         run: |
-          echo "Maintenance flag: ${{ inputs.maintenance }}"
+          set -euo pipefail
+          echo "Maintenance flag = ${MAINTENANCE}"
 
-          if [ "${{ inputs.maintenance }}" = "true" ]; then
-            echo "🔴 Enabling maintenance mode (S3 redirect)"
+          if [[ "${MAINTENANCE}" == "true" ]]; then
+            echo "🔴 Enabling maintenance mode"
 
             aws amplify update-app \
-              --app-id $APP_ID \
+              --app-id "$APP_ID" \
               --custom-rules '[
                 {
-                  "source": "/*",
+                  "source": "</*>",
                   "target": "'"$MAINTENANCE_URL"'",
                   "status": "302"
                 }
               ]'
-
           else
             echo "🟢 Disabling maintenance mode"
 
             aws amplify update-app \
-              --app-id $APP_ID \
+              --app-id "$APP_ID" \
               --custom-rules '[]'
           fi
 
-      - name: Clear Amplify cache (MANDATORY)
+      - name: Start Amplify rebuild
         run: |
-          echo "🧹 Clearing Amplify cache"
+          echo "🚀 Starting Amplify rebuild on branch: $BRANCH"
           aws amplify start-job \
-            --app-id $APP_ID \
-            --branch-name $BRANCH \
+            --app-id "$APP_ID" \
+            --branch-name "$BRANCH" \
             --job-type RELEASE
