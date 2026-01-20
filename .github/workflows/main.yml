@@ -1,4 +1,4 @@
-name: Amplify Maintenance Toggle (OIDC)
+Name: Amplify Maintenance Toggle (OIDC)
 
 on:
   workflow_dispatch:
@@ -39,29 +39,44 @@ jobs:
           set -euo pipefail
           echo "Maintenance flag = ${MAINTENANCE}"
 
+          # 1. DEFINE RULES
+          
+          # MAINTENANCE RULES: Redirect ALL traffic to S3
+          # We check source </*> (everything) and 302 redirect to S3
+          RULES_MAINTENANCE='[
+            {
+              "source": "/<*>",
+              "target": "'"$MAINTENANCE_URL"'",
+              "status": "302"
+            }
+          ]'
+
+          # STANDARD RULES: The default SPA rewrite rule
+          # This ensures refreshing pages like /login works after maintenance is off
+          RULES_STANDARD='[
+            {
+              "source": "</^[^.]+$/>",
+              "target": "/index.html",
+              "status": "200"
+            }
+          ]'
+
+          # 2. APPLY RULES BASED ON INPUT
           if [[ "${MAINTENANCE}" == "true" ]]; then
-            echo "🔴 Enabling maintenance mode"
-
-            aws amplify update-app \
-              --app-id "$APP_ID" \
-              --custom-rules '[
-                {
-                  "source": "</*>",
-                  "target": "'"$MAINTENANCE_URL"'",
-                  "status": "302"
-                }
-              ]'
+            echo "🔴 Enabling maintenance mode..."
+            aws amplify update-app --app-id "$APP_ID" --custom-rules "$RULES_MAINTENANCE"
           else
-            echo "🟢 Disabling maintenance mode"
-
-            aws amplify update-app \
-              --app-id "$APP_ID" \
-              --custom-rules '[]'
+            echo "🟢 Disabling maintenance mode (Restoring SPA Rewrite)..."
+            aws amplify update-app --app-id "$APP_ID" --custom-rules "$RULES_STANDARD"
           fi
 
+      # Optional: Amplify picks up Redirect changes instantly, 
+      # but running a job ensures the environment is synced if needed.
+      # Ideally, you don't actually need to rebuild the app just to change redirects.
+      # You can likely remove this step to save build minutes.
       - name: Start Amplify rebuild
         run: |
-          echo "🚀 Starting Amplify rebuild on branch: $BRANCH"
+          echo "🚀 Triggering release to refresh environment: $BRANCH"
           aws amplify start-job \
             --app-id "$APP_ID" \
             --branch-name "$BRANCH" \
