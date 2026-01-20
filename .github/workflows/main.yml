@@ -3,13 +3,13 @@ name: Amplify Maintenance Toggle (OIDC)
 on:
   workflow_dispatch:
     inputs:
-      action:
-        description: "Turn maintenance ON or OFF"
+      maintenance:
+        description: "Enable maintenance mode?"
         required: true
         type: choice
         options:
-          - ON
-          - OFF
+          - "true"
+          - "false"
 
 permissions:
   id-token: write
@@ -28,9 +28,9 @@ jobs:
 
       - name: Toggle maintenance mode
         run: |
-          echo "Action selected: ${{ inputs.action }}"
+          echo "Maintenance flag: ${{ inputs.maintenance }}"
 
-          if [ "${{ inputs.action }}" = "ON" ]; then
+          if [ "${{ inputs.maintenance }}" = "true" ]; then
             echo "🔴 Enabling maintenance mode"
             aws amplify update-app \
               --app-id dtp7k5k7ei8si \
