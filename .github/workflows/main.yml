@@ -15,6 +15,12 @@ permissions:
   id-token: write
   contents: read
 
+env:
+  AWS_REGION: ap-south-1
+  APP_ID: dtp7k5k7ei8si
+  BRANCH: main
+  MAINTENANCE_URL: https://maintance-window-test.s3.ap-south-1.amazonaws.com/maintance-windows/index.html
+
 jobs:
   maintenance:
     runs-on: ubuntu-latest
@@ -24,22 +30,22 @@ jobs:
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: arn:aws:iam::235351028312:role/Github-token
-          aws-region: ap-south-1
+          aws-region: ${{ env.AWS_REGION }}
 
       - name: Toggle maintenance mode
         run: |
           echo "Maintenance flag: ${{ inputs.maintenance }}"
 
           if [ "${{ inputs.maintenance }}" = "true" ]; then
-            echo "🔴 Enabling maintenance mode"
+            echo "🔴 Enabling maintenance mode (S3 redirect)"
 
             aws amplify update-app \
-              --app-id dtp7k5k7ei8si \
+              --app-id $APP_ID \
               --custom-rules '[
                 {
                   "source": "/*",
-                  "target": "https://maintance-window-test.s3.ap-south-1.amazonaws.com/maintance-windows/index.html",
-                  "status": "503"
+                  "target": "'"$MAINTENANCE_URL"'",
+                  "status": "302"
                 }
               ]'
 
@@ -47,7 +53,7 @@ jobs:
             echo "🟢 Disabling maintenance mode"
 
             aws amplify update-app \
-              --app-id dtp7k5k7ei8si \
+              --app-id $APP_ID \
               --custom-rules '[]'
           fi
 
@@ -55,6 +61,6 @@ jobs:
         run: |
           echo "🧹 Clearing Amplify cache"
           aws amplify start-job \
-            --app-id dtp7k5k7ei8si \
-            --branch-name main \
+            --app-id $APP_ID \
+            --branch-name $BRANCH \
             --job-type RELEASE
