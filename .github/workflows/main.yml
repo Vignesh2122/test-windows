@@ -26,25 +26,26 @@ jobs:
           role-to-assume: arn:aws:iam::235351028312:role/Github-token
           aws-region: ap-south-1
 
-      - name: Toggle maintenance mode
+      - name: Enable maintenance mode
+        if: ${{ inputs.action == 'ON' }}
         run: |
-          if [ "${{ inputs.action }}" = "ON" ]; then
-            echo "🔴 Enabling maintenance mode"
-            aws amplify update-app \
-              --app-id dtp7k5k7ei8si \
-              --name demo \
-              --custom-rules '[
-                {
-                  "source": "</*>",
-                  "target": "https://maintance-window-test.s3.ap-south-1.amazonaws.com/maintance-windows/index.html",
-                  "status": "302"
-                }
-              ]'
+          echo "🔴 Enabling maintenance mode"
+          aws amplify update-app \
+            --app-id dtp7k5k7ei8si \
+            --name demo \
+            --custom-rules '[
+              {
+                "source": "</*>",
+                "target": "http://maintance-window-test.s3-website-ap-south-1.amazonaws.com/maintance-windows/index.html",
+                "status": "302"
+              }
+            ]'
+
       - name: Disable maintenance mode
         if: ${{ inputs.action == 'OFF' }}
         run: |
+          echo "🟢 Disabling maintenance mode"
           aws amplify update-app \
-          --app-id dtp7k5k7ei8si \
-          --name demo \
-          --custom-rules '[]'
-
+            --app-id dtp7k5k7ei8si \
+            --name demo \
+            --custom-rules '[]'
