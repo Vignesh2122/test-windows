@@ -1,4 +1,4 @@
-Name: Amplify Maintenance Toggle (OIDC)
+name: Amplify Maintenance Toggle (OIDC)
 
 on:
   workflow_dispatch:
@@ -19,6 +19,7 @@ env:
   AWS_REGION: ap-south-1
   APP_ID: d3n2r1wsu6tac3
   BRANCH: main
+  # Note: Kept your specific bucket URL exactly as provided
   MAINTENANCE_URL: https://maintance-window-test.s3.ap-south-1.amazonaws.com/maintance-windows/index.html
 
 jobs:
@@ -37,13 +38,16 @@ jobs:
           MAINTENANCE: ${{ inputs.maintenance }}
         run: |
           set -euo pipefail
-          echo "Maintenance flag = ${MAINTENANCE}"
+          echo "Current Maintenance Flag: ${MAINTENANCE}"
 
-          # 1. DEFINE RULES
+          # ---------------------------------------------------------
+          # CONFIGURATION
+          # ---------------------------------------------------------
           
-          # MAINTENANCE RULES: Redirect ALL traffic to S3
-          # We check source </*> (everything) and 302 redirect to S3
-          RULES_MAINTENANCE='[
+          # 1. MAINTENANCE MODE RULE
+          # Redirects ALL traffic (/<*>) to your S3 URL.
+          # We use status 302 (Temporary Redirect).
+          JSON_MAINTENANCE='[
             {
               "source": "/<*>",
               "target": "'"$MAINTENANCE_URL"'",
@@ -51,9 +55,10 @@ jobs:
             }
           ]'
 
-          # STANDARD RULES: The default SPA rewrite rule
-          # This ensures refreshing pages like /login works after maintenance is off
-          RULES_STANDARD='[
+          # 2. STANDARD PRODUCTION RULE (SPA Rewrite)
+          # This is critical. When turning maintenance OFF, we must restore 
+          # the Single Page App rewrite rule so that pages like /login don't 404.
+          JSON_STANDARD='[
             {
               "source": "</^[^.]+$/>",
               "target": "/index.html",
@@ -61,22 +66,30 @@ jobs:
             }
           ]'
 
-          # 2. APPLY RULES BASED ON INPUT
+          # ---------------------------------------------------------
+          # EXECUTION
+          # ---------------------------------------------------------
+          
           if [[ "${MAINTENANCE}" == "true" ]]; then
-            echo "🔴 Enabling maintenance mode..."
-            aws amplify update-app --app-id "$APP_ID" --custom-rules "$RULES_MAINTENANCE"
+            echo "🔴 ACTIVATE: Applying Maintenance Redirects..."
+            aws amplify update-app \
+              --app-id "$APP_ID" \
+              --custom-rules "$JSON_MAINTENANCE"
+              
+            echo "✅ Maintenance mode ENABLED. Traffic is pointing to S3."
+
           else
-            echo "🟢 Disabling maintenance mode (Restoring SPA Rewrite)..."
-            aws amplify update-app --app-id "$APP_ID" --custom-rules "$RULES_STANDARD"
+            echo "🟢 DEACTIVATE: Restoring Standard SPA Routing..."
+            aws amplify update-app \
+              --app-id "$APP_ID" \
+              --custom-rules "$JSON_STANDARD"
+              
+            echo "✅ Maintenance mode DISABLED. Traffic is pointing to App."
           fi
 
-      # Optional: Amplify picks up Redirect changes instantly, 
-      # but running a job ensures the environment is synced if needed.
-      # Ideally, you don't actually need to rebuild the app just to change redirects.
-      # You can likely remove this step to save build minutes.
-      - name: Start Amplify rebuild
+      - name: Start Amplify Release
         run: |
-          echo "🚀 Triggering release to refresh environment: $BRANCH"
+          echo "🚀 Triggering release on branch: $BRANCH to flush cache..."
           aws amplify start-job \
             --app-id "$APP_ID" \
             --branch-name "$BRANCH" \
