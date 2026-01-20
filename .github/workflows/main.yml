@@ -1,0 +1,50 @@
+name: Amplify Maintenance Toggle (OIDC)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Turn maintenance ON or OFF"
+        required: true
+        type: choice
+        options:
+          - ON
+          - OFF
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  maintenance:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials using OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::235351028312:oidc-provider/token.actions.githubusercontent.com
+          aws-region: ap-south-1
+
+      - name: Toggle maintenance mode
+        run: |
+          if [ "${{ inputs.action }}" = "ON" ]; then
+            echo "🔴 Enabling maintenance mode"
+            aws amplify update-app \
+              --app-id dtp7k5k7ei8si \
+              --name demo \
+              --custom-rules '[
+                {
+                  "source": "</*>",
+                  "target": "https://maintance-window-test.s3.ap-south-1.amazonaws.com/maintance-windows/index.html",
+                  "status": "302"
+                }
+              ]'
+      - name: Disable maintenance mode
+        if: ${{ inputs.action == 'OFF' }}
+        run: |
+          aws amplify update-app \
+          --app-id dtp7k5k7ei8si \
+          --name demo \
+          --custom-rules '[]'
+
