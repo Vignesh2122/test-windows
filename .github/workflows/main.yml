@@ -32,20 +32,29 @@ jobs:
 
           if [ "${{ inputs.maintenance }}" = "true" ]; then
             echo "🔴 Enabling maintenance mode"
+
             aws amplify update-app \
               --app-id dtp7k5k7ei8si \
-              --name demo \
               --custom-rules '[
                 {
-                  "source": "</*>",
+                  "source": "/*",
                   "target": "https://maintance-window-test.s3.ap-south-1.amazonaws.com/maintance-windows/index.html",
-                  "status": "302"
+                  "status": "503"
                 }
               ]'
+
           else
             echo "🟢 Disabling maintenance mode"
+
             aws amplify update-app \
               --app-id dtp7k5k7ei8si \
-              --name demo \
               --custom-rules '[]'
           fi
+
+      - name: Clear Amplify cache (MANDATORY)
+        run: |
+          echo "🧹 Clearing Amplify cache"
+          aws amplify start-job \
+            --app-id dtp7k5k7ei8si \
+            --branch-name main \
+            --job-type RELEASE
