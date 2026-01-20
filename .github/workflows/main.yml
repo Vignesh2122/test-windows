@@ -23,7 +23,7 @@ jobs:
       - name: Configure AWS credentials using OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::235351028312:oidc-provider/token.actions.githubusercontent.com
+          role-to-assume: arn:aws:iam::235351028312:role/Github-token
           aws-region: ap-south-1
 
       - name: Toggle maintenance mode
