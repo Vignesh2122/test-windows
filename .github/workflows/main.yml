@@ -17,7 +17,7 @@ permissions:
 
 env:
   AWS_REGION: ap-south-1
-  APP_ID: dtp7k5k7ei8si
+  APP_ID: d3n2r1wsu6tac3
   BRANCH: main
   MAINTENANCE_URL: https://maintance-window-test.s3.ap-south-1.amazonaws.com/maintance-windows/index.html
 
