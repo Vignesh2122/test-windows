@@ -38,7 +38,7 @@ jobs:
               --custom-rules '[
                 {
                   "source": "</*>",
-                  "target": "http://maintance-window-test.s3-website-ap-south-1.amazonaws.com/maintance-windows/index.html",
+                  "target": "https://maintance-window-test.s3.ap-south-1.amazonaws.com/maintance-windows/index.html",
                   "status": "302"
                 }
               ]'
