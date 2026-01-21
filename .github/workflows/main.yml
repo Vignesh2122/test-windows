@@ -38,14 +38,6 @@ jobs:
         run: |
           set -euo pipefail
           echo "Current Maintenance Flag: ${MAINTENANCE}"
-
-          # ---------------------------------------------------------
-          # CONFIGURATION
-          # ---------------------------------------------------------
-          
-          # 1. MAINTENANCE MODE RULE (REWRITE)
-          # "status": "200" keeps the URL as example.com
-          # "source": "/<*>" catches all paths
           JSON_MAINTENANCE='[
             {
               "source": "/<*>",
@@ -53,20 +45,13 @@ jobs:
               "status": "200"
             }
           ]'
-
-          # 2. STANDARD PRODUCTION RULE (SPA Rewrite)
-          # Restores normal routing when maintenance is OFF
           JSON_STANDARD='[
             {
-              "source": "</^[^.]+$/>",
+              "source": "/<*>",
               "target": "/index.html",
-              "status": "200"
+              "status": "404-200"
             }
           ]'
-
-          # ---------------------------------------------------------
-          # EXECUTION
-          # ---------------------------------------------------------
           
           if [[ "${MAINTENANCE}" == "true" ]]; then
             echo "🔴 ACTIVATE: Applying Maintenance Rewrite (Hidden URL)..."
@@ -91,4 +76,5 @@ jobs:
           aws amplify start-job \
             --app-id "$APP_ID" \
             --branch-name "$BRANCH" \
-            --job-type RELEASE
+            --job-type RELEASE \
+            --commit-message "Maintenance Window triggered by Pipeline"
